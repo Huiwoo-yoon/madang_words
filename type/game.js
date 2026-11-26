@@ -71,6 +71,8 @@ function noise(dur, filterType, freq, vol = 0.2, when = 0) {
   src.connect(f).connect(g).connect(a.destination);
   src.start(t);
 }
+// 캐릭터 목소리는 블록 마당 공용 효과음(../sfx.js)에서: 스티브 '웁', 크리퍼 '쉬익', 좀비 '으어어', 돼지 '꿀꿀' …
+const charVoice = () => { if (soundOn && ME) Sfx.voice('type', ME.character); };
 const sfx = {
   key: p => { tone(500 + p * 500, 0.05, 'square', 0.05); noise(0.03, 'lowpass', 900, 0.12); },
   error: () => { noise(0.45, 'highpass', 2500, 0.15); tone(140, 0.25, 'sawtooth', 0.06, 0, 70); }, // 크리퍼 "쉬익"
@@ -378,7 +380,7 @@ function complete() {
   // 💎 에메랄드: 단어마다 1개, 5콤보마다 5개 더 (블록 마당 지갑에 들어간다)
   const gems = 1 + (S.combo && S.combo % 5 === 0 ? 5 : 0);
   ME.points = (ME.points || 0) + gems;
-  if (S.combo && S.combo % 5 === 0) { sfx.combo(); setHint(`🔥 ${S.combo} 콤보! ${pick(CHEERS[D.lang])}  💎+${gems}`); }
+  if (S.combo && S.combo % 5 === 0) { sfx.combo(); setTimeout(charVoice, 300); setHint(`🔥 ${S.combo} 콤보! ${pick(CHEERS[D.lang])}  💎+${gems}`); }
   else setHint(`${pick(CHEERS[D.lang])}  +1 ${S.block.name}  💎+1`);
 
   // 보너스 블록: 쉬움 단계는 5콤보마다 꼭, 그 밖에는 가끔 운 좋게
@@ -387,7 +389,7 @@ function complete() {
   if (bonus) giveBonus(comboBonus ? `🔥 ${S.combo} 콤보 보너스!` : '🍀 행운의 보너스!');
 
   if (D.blocks % 10 === 0) { // 보너스 팝업이 떠 있으면 다 본 뒤에
-    setTimeout(() => { sfx.levelUp(); confetti(); popup(`⭐ 레벨 ${xpLevel()}! ⭐`, D.lang === 'ko' ? '블록 10개를 캤어요!' : '10 blocks mined!'); }, bonus ? 1900 : 300);
+    setTimeout(() => { sfx.levelUp(); setTimeout(charVoice, 650); confetti(); popup(`⭐ 레벨 ${xpLevel()}! ⭐`, D.lang === 'ko' ? '블록 10개를 캤어요!' : '10 blocks mined!'); }, bonus ? 1900 : 300);
   }
   updateStats();
   if (SESS.keys >= FLUSH_KEYS) flush(); else scheduleSave();
@@ -638,6 +640,7 @@ $('meChars').onclick = e => {
   const b = e.target.closest('.char');
   if (!b) return;
   ME.character = b.dataset.id;
+  charVoice(); // 새 캐릭터 인사
   $('meChars').innerHTML = charGridHTML(ME.character);
   updateHeader(); setMiner(ME.character); saveNow();
 };

@@ -75,12 +75,14 @@ ARCADE_GAMES.sudoku = (() => {
       if (done || sel < 0 || grid[sel]) return;
       if (solution[sel] !== n) {
         mistakes++;
+        Sfx.play('wrong');
         render(sel);
         status();
         if (mistakes >= 3) { done = true; api.end('lose', '3번 틀려서 실패했어요.'); }
         return;
       }
       grid[sel] = n;
+      Sfx.play('pop');
       render();
       status();
       if (grid.every((v) => v)) { done = true; api.end('win', '스도쿠를 다 풀었어요!'); }

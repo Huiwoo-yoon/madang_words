@@ -29,13 +29,13 @@ const albaCost = (n) => 500 * (n + 1) * (n + 1); // 고용 500, 2단계 2,000 �
 // 🧑 캐릭터: 하나를 골라 함께 싸운다. 저마다 능력이 있다 (id는 저장 기록 때문에 그대로 둔다)
 const hero = (hat, eye = '#3a5ad0') => Pix.img('hero', { h: hat, a: '#e0a878', w: '#ffffff', e: eye, x: '#c08060', m: '#8a4a3a' });
 const CHARACTERS = [
-  { id: 'me', emoji: hero('#4a2a1a'), name: '초보 모험가', cost: 0, desc: '특별한 능력은 없지만 씩씩해요.' },
-  { id: 'dog', emoji: Pix.img('animal', { a: '#e8e8e8', b: '#b8b8b8', h: '#c8c8c8', e: '#1a1a1a', x: '#1a1a1a', m: '#d04040' }), name: '늑대 친구', cost: 2000, time: 2, desc: '내 시간 +2초' },
-  { id: 'hamster', emoji: hero('#ffcf3f'), name: '광부', cost: 5000, miss: 0.03, desc: '보스가 단어를 까먹을 확률 +3%' },
-  { id: 'unicorn', emoji: hero('#2a8a3a', '#6a4a2a'), name: '보물 상인', cost: 10000, reward: 0.3, desc: '이긴 에메랄드 +30%' },
-  { id: 'fairy', emoji: Pix.img('wizard', { a: '#e0a878', b: '#e8e8e8', h: '#5a2aa0', x: '#ffcf3f', e: '#1a1a1a', m: '#8a4a3a' }), name: '마법사', cost: 30000, freeFee: true, desc: '참가비가 언제나 0' },
-  { id: 'hero', emoji: hero('#b8b8c8', '#1a1a1a'), name: '철갑 기사', cost: 60000, time: 3, reward: 0.2, desc: '내 시간 +3초, 이긴 에메랄드 +20%' },
-  { id: 'tiger', emoji: Pix.img('dragon', { a: '#c02a2a', b: '#ff6a3a', h: '#6a0a0a', e: '#ffd23f', x: '#ffffff' }), name: '용 기사', cost: 150000, time: 3, reward: 0.5, miss: 0.05, desc: '내 시간 +3초, 이긴 에메랄드 +50%, 보스 실수 +5%' },
+  { id: 'me', emoji: hero('#4a2a1a'), name: '초보 모험가', voice: 'yay', cost: 0, desc: '특별한 능력은 없지만 씩씩해요.' },
+  { id: 'dog', emoji: Pix.img('animal', { a: '#e8e8e8', b: '#b8b8b8', h: '#c8c8c8', e: '#1a1a1a', x: '#1a1a1a', m: '#d04040' }), name: '늑대 친구', voice: 'bark', cost: 2000, time: 2, desc: '내 시간 +2초' },
+  { id: 'hamster', emoji: hero('#ffcf3f'), name: '광부', voice: 'clink', cost: 5000, miss: 0.03, desc: '보스가 단어를 까먹을 확률 +3%' },
+  { id: 'unicorn', emoji: hero('#2a8a3a', '#6a4a2a'), name: '보물 상인', voice: 'coin', cost: 10000, reward: 0.3, desc: '이긴 에메랄드 +30%' },
+  { id: 'fairy', emoji: Pix.img('wizard', { a: '#e0a878', b: '#e8e8e8', h: '#5a2aa0', x: '#ffcf3f', e: '#1a1a1a', m: '#8a4a3a' }), name: '마법사', voice: 'sparkle', cost: 30000, freeFee: true, desc: '참가비가 언제나 0' },
+  { id: 'hero', emoji: hero('#b8b8c8', '#1a1a1a'), name: '철갑 기사', voice: 'clang', cost: 60000, time: 3, reward: 0.2, desc: '내 시간 +3초, 이긴 에메랄드 +20%' },
+  { id: 'tiger', emoji: Pix.img('dragon', { a: '#c02a2a', b: '#ff6a3a', h: '#6a0a0a', e: '#ffd23f', x: '#ffffff' }), name: '용 기사', voice: 'roar', cost: 150000, time: 3, reward: 0.5, miss: 0.05, desc: '내 시간 +3초, 이긴 에메랄드 +50%, 보스 실수 +5%' },
 ];
 
 // 🎨 배경(바이옴): 5레벨마다 바뀐다. 그림은 pixel.js가 블록으로 그린다

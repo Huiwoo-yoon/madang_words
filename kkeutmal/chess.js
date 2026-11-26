@@ -185,6 +185,7 @@ ARCADE_GAMES.chess = (() => {
       setTimeout(() => {
         if (A !== myGame || A.over) return;
         const m = bestMove(st, lv);
+        if (m.cap) Sfx.play('ttak'); else Sfx.play('place', 'wood');
         st = make(st, m);
         last = m;
         thinking = false;
@@ -197,6 +198,7 @@ ARCADE_GAMES.chess = (() => {
       const sq = +cell.dataset.sq;
       const move = targets.find((m) => m.to === sq);
       if (move) {
+        if (move.cap) Sfx.play('ttak'); else Sfx.play('place', 'wood');
         st = make(st, move);
         last = move; sel = -1; targets = [];
         if (!afterMove()) aiTurn();

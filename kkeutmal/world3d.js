@@ -23,6 +23,11 @@ const World3D = (() => {
   const P = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0, pitch: 0, ground: false, fly: false };
   let respawn = null;
   const keys = {};
+  let stepDist = 0; // 발소리: 이만큼 걸을 때마다 한 번
+  // 블록 재질 → 소리 색 (sfx.js)
+  const WOOD = ['log', 'planks', 'crafting_table', 'door', 'bed', 'chest', 'fence'];
+  const matOf = (b) => (!b ? 'stone' : ['grass', 'dirt', 'leaves'].includes(b.id) ? 'grass' : b.id === 'sand' ? 'sand'
+    : WOOD.includes(b.id) ? 'wood' : b.id === 'glass' ? 'glass' : 'stone');
   const $ = (id) => document.getElementById(id);
 
   const idx = (x, y, z) => x + W * (z + D * y);
@@ -54,7 +59,7 @@ const World3D = (() => {
       if (!running) return;
       keys[e.code] = true;
       if (/^Digit[1-9]$/.test(e.code)) { sel = +e.code.slice(5) - 1; drawHotbar(); }
-      if (e.code === 'KeyF' && o.mode === 'build') { P.fly = !P.fly; P.vy = 0; toast(P.fly ? '🕊️ 날기 켜짐 (스페이스 위, 시프트 아래)' : '날기 꺼짐'); }
+      if (e.code === 'KeyF' && o.mode === 'build') { P.fly = !P.fly; P.vy = 0; toast(P.fly ? '🕊️ 날기 켜짐 (스페이스 위, 시프트 아래)' : '날기 꺼짐'); Sfx.play('fly'); }
       if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
       if (e.code === 'Escape' && active && document.pointerLockElement !== root) pause(); // 마우스 잠금 없이 할 때
     });
@@ -157,24 +162,31 @@ const World3D = (() => {
       P.vy = (keys.Space ? FLY : 0) - (keys.ShiftLeft || keys.ShiftRight ? FLY : 0);
     } else {
       P.vy -= GRAVITY * dt;
-      if (keys.Space && P.ground) P.vy = JUMP;
+      if (keys.Space && P.ground) { P.vy = JUMP; Sfx.play('jump'); }
     }
+    const wasGround = P.ground, fallV = P.vy, ox = P.x, oz = P.z;
     P.ground = false;
     move('x', P.vx * dt);
     move('z', P.vz * dt);
     move('y', P.vy * dt);
-    if (P.y < -12) { toast('떨어졌어요! 다시 시작해요.'); spawnAt(respawn); }
+    if (P.ground && !wasGround && fallV < -7 && !P.fly) Sfx.play('land'); // 쿵 내려앉기
+    if (P.ground) { // 걸을 때 발소리 (밟은 블록 재질에 따라)
+      stepDist += Math.hypot(P.x - ox, P.z - oz);
+      if (stepDist > 1.7) { stepDist = 0; Sfx.play('step', matOf(Blocks.BY_NUM[get(Math.floor(P.x), Math.floor(P.y - 0.05), Math.floor(P.z))])); }
+    }
+    if (P.y < -12) { toast('떨어졌어요! 다시 시작해요.'); Sfx.play('fall'); spawnAt(respawn); }
     // 발밑 블록: 체크포인트·도착
     const under = Blocks.BY_NUM[get(Math.floor(P.x), Math.floor(P.y - 0.05), Math.floor(P.z))];
     if (under && P.ground) {
       if (under.id === 'check') {
         const c = [Math.floor(P.x) + 0.5, Math.floor(P.y), Math.floor(P.z) + 0.5];
-        if (!respawn || respawn[0] !== c[0] || respawn[1] !== c[1] || respawn[2] !== c[2]) { respawn = c; toast('🚩 체크포인트! 떨어지면 여기서 다시 시작해요.'); }
+        if (!respawn || respawn[0] !== c[0] || respawn[1] !== c[1] || respawn[2] !== c[2]) { respawn = c; toast('🚩 체크포인트! 떨어지면 여기서 다시 시작해요.'); Sfx.play('checkpoint'); }
       }
       if (under.id === 'goal' && o.mode === 'adventure' && o.onGoal && !finished) { // 건축 모드(날기)로 닿은 건 치지 않는다
         finished = true;
         active = false;
         document.exitPointerLock();
+        Sfx.play('goal');
         o.onGoal(Date.now() - startTime);
       }
     }
@@ -219,17 +231,18 @@ const World3D = (() => {
   }
 
   function breakBlock() {
-    if (o.mode !== 'build') return toast('⛔ 모험 모드에서는 블록을 부술 수 없어요.');
+    if (o.mode !== 'build') { Sfx.play('deny'); return toast('⛔ 모험 모드에서는 블록을 부술 수 없어요.'); }
     const h = ray();
     if (!h) return;
     const b = Blocks.BY_NUM[get(h.x, h.y, h.z)];
     if (b.tier < 0 && !(b.tool && o.tools)) return toast(`${b.name} 블록은 부술 수 없어요.`);
     vox[idx(h.x, h.y, h.z)] = 0;
     if (!b.tool) o.inv[b.id] = (o.inv[b.id] || 0) + 1; // 맵 도구는 공짜라 가방에 안 돌아간다
+    Sfx.play('breakBlock', matOf(b));
     changed();
   }
   function placeBlock() {
-    if (o.mode !== 'build') return toast('⛔ 모험 모드에서는 블록을 놓을 수 없어요.');
+    if (o.mode !== 'build') { Sfx.play('deny'); return toast('⛔ 모험 모드에서는 블록을 놓을 수 없어요.'); }
     const h = ray();
     const b = hotbarItems()[sel];
     if (!h || !b) return;
@@ -239,6 +252,7 @@ const World3D = (() => {
     if (hits(P.x, P.y, P.z)) { vox[idx(h.px, h.py, h.pz)] = 0; return; } // 내 몸이 있는 곳엔 못 놓는다
     if (!b.tool) o.inv[b.id]--;
     else if (b.id === 'start') toast('🚩 출발 블록! 모험 모드는 여기서 시작해요.');
+    Sfx.play('place', matOf(b));
     changed();
   }
   function changed() {

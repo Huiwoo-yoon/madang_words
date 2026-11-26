@@ -39,6 +39,7 @@ function startArcade(id, lv) {
   $('agBoard').innerHTML = '';
   $('agBoard').className = 'ag-board ' + id;
   show('arcadeGame');
+  Sfx.play('pop');
   ARCADE_GAMES[id].start($('agBoard'), lv, {
     status: (t) => { $('agStatus').textContent = t; },
     end: (result, why) => endArcade(result, why),
@@ -53,6 +54,7 @@ function endArcade(result, why) {
   if (result === 'win') { S.money += level.reward; head = `<div class="big">🎉</div><h2>이겼다!</h2><p class="gain">${ICON.gem} +${won(level.reward)}</p>`; }
   else if (result === 'draw') { S.money += level.fee; head = `<div class="big">🤝</div><h2>비겼어요</h2><p class="gain">참가비 ${won(level.fee)}을 돌려받았어요.</p>`; }
   else head = `<div class="big">😢</div><h2>졌어요…</h2>`;
+  Sfx.play(result === 'win' ? 'win' : result === 'draw' ? 'pop' : 'lose');
   save();
   renderTop();
   $('modal').innerHTML = `${head}${why ? `<p>${why}</p>` : ''}

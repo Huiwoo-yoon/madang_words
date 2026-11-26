@@ -215,6 +215,7 @@ function earn(n, xp = 0) {
       S.xp -= XP_PER_LEVEL;
       S.level++;
       leveled = true;
+      Sfx.play('fanfare');
       toast(S.level === MAX_LEVEL ? '👑 레벨 20! 최종 보스가 나타났다!' : `⬆️ 레벨 업! Lv ${S.level}`);
     }
     if (S.level === MAX_LEVEL) S.xp = 0;
@@ -369,9 +370,12 @@ function hit() {
     gain *= pointMult();
     earn(gain, target.pts);
     floatText('+' + gain);
+    Sfx.play('ttak'); // 딱!
+    setTimeout(() => Sfx.voice('madang', S.char), 180); // 내 캐릭터가 기뻐한다
     $('msg').textContent = `${tags.join(' ')} 딱! ${target.name}를 뒤집었다! +${gain} 포인트, 경험치 +${target.pts * xpMult()}`;
   } else {
     e.classList.add('shake');
+    Sfx.play('whiff'); // 휙, 빗나감
     if (has('magnet')) { earn(1); floatText('🧲 +1', $('floats'), '#8d99ae'); }
     $('msg').textContent = has('magnet') ? '아깝다! 그래도 자석 덕분에 +1 포인트' : '아깝다! 안 뒤집혔어요.';
   }
@@ -404,9 +408,12 @@ function bossHit(success, miracle) {
     boss.hp -= dmg;
     e.classList.add('flip');
     floatText(dmg === 2 ? '🐉 딱!! -2' : '딱!');
+    Sfx.play('ttak');
+    setTimeout(() => Sfx.voice('madang', S.char), 180);
     $('msg').textContent = (miracle ? '🌀 기적의 바람! ' : '') + '대마왕의 딱지를 뒤집었다!';
   } else {
     e.classList.add('shake');
+    Sfx.play('whiff');
     $('msg').textContent = '빗나갔다...';
   }
   renderBossHp();
@@ -421,9 +428,11 @@ function bossHit(success, miracle) {
         S.buffs.amulet--;
         save();
         floatText('📿 막았다!', $('floats'), '#9d4edd');
+        Sfx.play('clang');
         $('msg').textContent = '📿 보스 부적이 대마왕의 공격을 막았다! 내 차례!';
       } else {
         boss.myHp--;
+        Sfx.play('growl'); // 대마왕이 으르렁
         floatText('내 딱지가 뒤집혔다!', $('floats'), '#9d0208');
         $('msg').textContent = '👑 대마왕이 내 딱지를 뒤집었다!';
       }
@@ -447,9 +456,11 @@ function endBoss(win) {
     save();
     flush(); // 트로피는 바로 저장
     toast('🏆 보스를 이겼다! 트로피 +1. 다시 레벨 1부터!');
+    Sfx.play('win');
     $('msg').textContent = '🏆 승리! 트로피를 얻었어요. 다시 레벨 1부터 시작!';
   } else {
     toast('💀 졌다... 마트에서 업그레이드하고 다시 도전!');
+    Sfx.play('lose');
     $('msg').textContent = '졌어요. 포인트를 모아 아이템을 사고 다시 도전하세요!';
   }
   renderHeader();
@@ -458,6 +469,7 @@ function endBoss(win) {
 
 $('bossBtn').onclick = startBoss;
 $('hitBtn').onclick = hit;
+Sfx.button($('soundBtn'));
 document.addEventListener('keydown', (ev) => {
   if (ev.code === 'Space' && document.activeElement.tagName !== 'INPUT') { ev.preventDefault(); hit(); }
 });
@@ -476,6 +488,7 @@ function buy(cost, apply, message) {
   S.points -= cost;
   apply();
   save();
+  Sfx.play('coin');
   toast(message);
   renderHeader();
   renderMart();
@@ -657,6 +670,7 @@ function buyChar(c) {
 
 function pickChar(c) {
   S.char = c.id;
+  Sfx.voice('madang', c.id); // 새 캐릭터 인사
   save();
   toast(`${c.emoji} ${c.name}(으)로 바꿨어요! ${c.ability}`);
   renderHeader();

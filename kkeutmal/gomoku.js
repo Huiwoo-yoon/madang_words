@@ -68,6 +68,7 @@ ARCADE_GAMES.gomoku = (() => {
     }
     function place(r, c, who) {
       b[r][c] = who; last = { r, c }; moves++;
+      Sfx.play('place', 'stone'); // 딸깍
       render();
       if (wins(b, r, c, who)) { api.end(who === ME ? 'win' : 'lose', who === ME ? '다섯 개를 한 줄로 놓았어요!' : 'AI가 먼저 다섯 개를 놓았어요.'); return true; }
       if (moves === N * N) { api.end('draw', '판이 꽉 찼어요.'); return true; }

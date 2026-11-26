@@ -407,6 +407,7 @@ function throwArrow(success, fromBoss) {
   setTimeout(() => {
     pot.classList.add(success ? 'in' : 'shake');
     Music.sfx(success ? 'in' : 'miss');
+    if (success) setTimeout(() => Sfx.voice('madang', S.char), 250); // 내 캐릭터가 기뻐한다
   }, 540);
 }
 

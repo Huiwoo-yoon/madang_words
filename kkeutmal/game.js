@@ -4,10 +4,13 @@ const FINAL_BONUS = 100000;
 const START_MONEY = 100; // 처음 시작할 때 받는 돈
 
 // [도트 그림, 이름, 등장 대사] — 그림은 pixel.js의 모양 + 색
-const boss = (shape, pal, name, line) => [Pix.img(shape, pal), name, line];
+// 4번째 칸 = 목소리 (sfx.js). 따로 안 주면 모양에 어울리는 목소리
+const BOSS_VOICE = { slime: 'slime', animal: 'howl', zombie: 'zombie', skeleton: 'skeleton', spider: 'spider', robot: 'robot', ghost: 'ghost',
+  wizard: 'witch', dragon: 'roar', golem: 'golem', ninja: 'whoosh', demon: 'growl', king: 'fanfare' };
+const boss = (shape, pal, name, line, voice) => [Pix.img(shape, pal), name, line, voice || BOSS_VOICE[shape]];
 const BOSSES = [
   boss('slime', { a: '#3f9a2a', b: '#7fd85a', e: '#1f4a14', m: '#1f4a14' }, '꼬마 슬라임', '말랑말랑! 나 단어 열 개쯤 알아!'),
-  boss('animal', { a: '#5a4a44', b: '#3a2e2a', h: '#3a2e2a', e: '#ff4040', x: '#2a1e1a', m: '#2a1e1a' }, '동굴 박쥐', '찍찍… 어두운 데서 단어 연습했지.'),
+  boss('animal', { a: '#5a4a44', b: '#3a2e2a', h: '#3a2e2a', e: '#ff4040', x: '#2a1e1a', m: '#2a1e1a' }, '동굴 박쥐', '찍찍… 어두운 데서 단어 연습했지.', 'squeak'),
   boss('zombie', { a: '#5f9a4a', b: '#3d6a2e', h: '#3a2a1a', e: '#1a1a1a', m: '#2a3a1e' }, '좀비 농부', '으어어… 단어… 심어 놨지…'),
   boss('skeleton', { a: '#dcdcd0', b: '#a8a89a', e: '#1a1a1a', m: '#1a1a1a' }, '해골 궁수', '내 단어 화살을 피해 봐!'),
   boss('spider', { a: '#3a3030', b: '#5a4a4a', e: '#e02020', x: '#e02020' }, '독거미', '거미줄처럼 말을 엮어 주마.'),
@@ -26,8 +29,8 @@ const BOSSES = [
   boss('dragon', { a: '#2a8a8a', b: '#5ac0b0', h: '#1a5a5a', e: '#ffff60', x: '#ffffff' }, '바다 괴물', '깊은 바다에서 올라왔다!'),
   boss('skeleton', { a: '#5a5a5a', b: '#3a3a3a', e: '#ff4040', m: '#ff4040' }, '해골 기사', '검은 갑옷의 단어 기사다.'),
   boss('golem', { a: '#8a2a1a', b: '#ff7a1a', e: '#ffd23f', x: '#3a0a0a' }, '용암 골렘', '녹아내리는 단어를 받아라!'),
-  boss('wizard', { a: '#ffd2a6', b: '#e8e8e8', h: '#2a3ad0', x: '#ffd23f', e: '#1a1a1a', m: '#6a3a2a' }, '번개 마법사', '번쩍! 번개처럼 잇는다!'),
-  boss('ghost', { a: '#ff9a2a', e: '#7a1a00', m: '#7a1a00' }, '불꽃 정령', '활활! 단어를 태워 버리겠다!'),
+  boss('wizard', { a: '#ffd2a6', b: '#e8e8e8', h: '#2a3ad0', x: '#ffd23f', e: '#1a1a1a', m: '#6a3a2a' }, '번개 마법사', '번쩍! 번개처럼 잇는다!', 'thunder'),
+  boss('ghost', { a: '#ff9a2a', e: '#7a1a00', m: '#7a1a00' }, '불꽃 정령', '활활! 단어를 태워 버리겠다!', 'roar'),
   boss('golem', { a: '#5ee0e0', b: '#2a9a9a', e: '#0a3a3a', x: '#ffffff' }, '다이아 골렘', '나는 세상에서 가장 단단하다.'),
   boss('wizard', { a: '#9ae07a', b: '#3a5a2a', h: '#2a6a1a', x: '#a0ff40', e: '#ff3a3a', m: '#1a2a0a' }, '독 마녀', '독 단어 한 방울이면 끝이야.'),
   boss('spider', { a: '#3a1a4a', b: '#6a2a8a', e: '#ff40ff', x: '#ffd23f' }, '어둠 거미 여왕', '내 거미줄에서 빠져나갈 수 없다.'),
@@ -214,6 +217,7 @@ function startMatch() {
   setTimer(1);
   $('timerText').textContent = '';
   say('boss', line, true);
+  Sfx.play(BOSSES[lv - 1][3]); // 보스 등장 목소리
   show('battle');
   bossTurn();
 }
@@ -240,6 +244,7 @@ function bossTurn() {
     const w = bossPick();
     if (!w) return endMatch(true, M.last ? `‘${lastOf(M.last)}’(으)로 시작하는 단어가 생각 안 나…` : '');
     play('boss', w);
+    Sfx.play(BOSSES[M.lv - 1][3]);
     playerTurn();
   }, 700 + Math.random() * 900);
 }
@@ -292,7 +297,9 @@ function setTimer(frac) {
 function tick() {
   const left = Math.max(0, M.deadline - Date.now());
   setTimer(Math.min(1, left / (M.st.time * 1000)));
-  $('timerText').textContent = Math.ceil(left / 1000) + '초';
+  const sec = Math.ceil(left / 1000);
+  $('timerText').textContent = sec + '초';
+  if (sec <= 5 && sec > 0 && sec !== M.lastTick && M.turn === 'player') { M.lastTick = sec; Sfx.play('tick'); } // 5초 남으면 째깍
   if (left <= 0 && M.turn === 'player') endMatch(false, '시간 초과!');
 }
 
@@ -304,6 +311,7 @@ async function submitWord() {
   const fail = (t) => { // 틀리면 바로 진다 (보호 물약이 있으면 한 번 봐준다)
     if (S.potions.shield > 0) {
       S.potions.shield--; save(); renderPotionBar();
+      Sfx.play('clang');
       $('msg').textContent = `🛡️ 보호 물약이 막아 줬어요! (${t}) 다시 써 보세요.`;
       $('input').select();
       return;
@@ -328,6 +336,7 @@ async function submitWord() {
   }
   clearInterval(M.timer);
   play('me', w);
+  Sfx.play(myChar().voice || 'yay'); // 내 캐릭터 목소리
   // 단어마다 블록 1개: 글자가 길수록 귀한 블록 (2글자 잔디·흙… 5글자 이상 다이아·에메랄드…)
   const b = gainBlock(Math.min(4, w.length - 1));
   $('msg').innerHTML = `${Blocks.icon(b)} ${b.name} 블록 +1`;
@@ -384,6 +393,7 @@ function endMatch(win, reason) {
   save();
   renderTop();
   $('modal').innerHTML = html;
+  Sfx.play(win ? 'win' : 'lose');
   setTimeout(() => $('overlay').classList.remove('hidden'), win ? 600 : 200);
 }
 
@@ -396,6 +406,7 @@ function renderPotionBar() {
 function usePotion(id) {
   if (!M || M.over || M.turn !== 'player' || !S.potions[id]) return;
   S.potions[id]--;
+  Sfx.play('gulp');
   if (id === 'time') {
     M.deadline += 7000;
     $('msg').textContent = '⏳ 시간이 7초 늘었어요!';
@@ -415,6 +426,7 @@ function buy(cost, apply, done) {
   S.money -= cost;
   apply();
   save();
+  Sfx.play('coin');
   renderTop();
   renderShop();
   $('shopMsg').innerHTML = done;
@@ -470,8 +482,9 @@ function onBuy(act) {
     buy(albaCost(S.alba), () => S.alba++, S.alba ? `${ICON.miner} 알바 레벨 ${S.alba + 1}!` : `${ICON.miner} 광부 알바를 고용했어요!`);
   } else if (kind === 'char') {
     const c = CHARACTERS.find((x) => x.id === id);
-    if (S.chars.includes(id)) { S.char = id; save(); renderShop(); $('shopMsg').innerHTML = `${c.emoji} ${c.name}와(과) 함께해요!`; return; }
+    if (S.chars.includes(id)) { S.char = id; save(); renderShop(); $('shopMsg').innerHTML = `${c.emoji} ${c.name}와(과) 함께해요!`; Sfx.play(c.voice); return; }
     buy(c.cost, () => { S.chars.push(id); S.char = id; }, `${c.emoji} ${c.name}을(를) 데려왔어요!`);
+    if (S.char === id) setTimeout(() => Sfx.play(c.voice), 350); // 데려왔으면 인사
   }
 }
 
@@ -484,6 +497,7 @@ setInterval(() => {
 }, 1000);
 
 // ===== 버튼 =====
+Sfx.button($('soundBtn'));
 $('startBtn').onclick = startMatch;
 $('shopBtn').onclick = () => { $('shopMsg').textContent = ''; renderShop(); show('shop'); };
 $('shopBack').onclick = renderHome;
