@@ -86,5 +86,17 @@ const Maps = (() => {
     return { size: [S, H, S], data: m.data, spawn: [1.5, 1, 1.5], yaw, sky: '#a8d8ff', timer: true };
   }
 
-  return { myWorld, pack, parkour, maze, PARKOUR_LEVELS, MAZE_LEVELS };
+  // 출발 블록 위를 시작 위치로 (없으면 null)
+  function startOf(size, data) {
+    const [W, , D] = size, n = N('start');
+    const i = data.indexOf(n);
+    if (i < 0) return null;
+    return [(i % W) + 0.5, Math.floor(i / (W * D)) + 1, (Math.floor(i / W) % D) + 0.5];
+  }
+  const unpack = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  // 맵 모양이 같은지 비교하는 짧은 지문 (올리기 전에 '만든 사람이 깼는지' 확인용)
+  function fingerprint(data) { let h = 2166136261; for (let i = 0; i < data.length; i++) { h ^= data[i]; h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
+  const has = (data, id) => data.indexOf(N(id)) >= 0;
+
+  return { myWorld, pack, unpack, parkour, maze, startOf, fingerprint, has, MY, PARKOUR_LEVELS, MAZE_LEVELS };
 })();

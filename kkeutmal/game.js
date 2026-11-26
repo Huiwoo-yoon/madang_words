@@ -506,7 +506,7 @@ $('modal').onclick = (e) => {
   else if (act === 'again') startArcade(A.game.id, A.lv); // 미니게임 (arcade.js)
   else if (act === 'arcade') showArcade();
   else if (act === 'blocks') BlockWorld.render(); // 블록 세상 (blockworld.js)
-  else if (act === 'bwAgain') BlockWorld.again();
+  else if (act.startsWith('bw:')) BlockWorld.act(act.slice(3));
   else renderHome();
 };
 

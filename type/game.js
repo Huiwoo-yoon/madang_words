@@ -375,8 +375,11 @@ function complete() {
   D.inv[S.block.id] = (D.inv[S.block.id] || 0) + 1;
   drawInventory(S.block.id);
 
-  if (S.combo && S.combo % 5 === 0) { sfx.combo(); setHint(`🔥 ${S.combo} 콤보! ${pick(CHEERS[D.lang])}`); }
-  else setHint(`${pick(CHEERS[D.lang])}  +1 ${S.block.name}`);
+  // 💎 에메랄드: 단어마다 1개, 5콤보마다 5개 더 (블록 마당 지갑에 들어간다)
+  const gems = 1 + (S.combo && S.combo % 5 === 0 ? 5 : 0);
+  ME.points = (ME.points || 0) + gems;
+  if (S.combo && S.combo % 5 === 0) { sfx.combo(); setHint(`🔥 ${S.combo} 콤보! ${pick(CHEERS[D.lang])}  💎+${gems}`); }
+  else setHint(`${pick(CHEERS[D.lang])}  +1 ${S.block.name}  💎+1`);
 
   // 보너스 블록: 쉬움 단계는 5콤보마다 꼭, 그 밖에는 가끔 운 좋게
   const comboBonus = D.level === 1 && S.combo && S.combo % 5 === 0;
@@ -480,6 +483,7 @@ function drawInventory(newId) {
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function updateStats() {
   $('sBlocks').textContent = D.blocks;
+  $('sGems').textContent = (ME.points || 0).toLocaleString('ko-KR');
   $('sCombo').textContent = S.combo;
   $('sAcc').textContent = (D.good + D.bad ? Math.round(100 * D.good / (D.good + D.bad)) : 100) + '%';
   $('xpFill').style.width = (D.blocks % 10) * 10 + '%';

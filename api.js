@@ -69,6 +69,7 @@ var API = (() => {
       async signOut() { uid = null; await sb.auth.signOut(); },
       // 지갑·캐릭터·data를 한꺼번에 저장 (타자연습·끝말잇기가 쓴다)
       async saveProfile(p) {
+        if (p.id !== uid) throw new Error('다른 아이디로 바뀌었어요. 새로고침해 주세요.'); // 다른 창에서 아이디를 바꾼 경우
         must(await sb.from('bm_profiles').update({ nickname: p.nickname, points: p.points, character: p.character, chars: p.chars, data: p.data }).eq('id', uid));
       },
       async loadGame(game) {
@@ -111,6 +112,42 @@ var API = (() => {
         const { data, error } = await sb.from('bm_public_worlds').select('id, nickname, character, worlds, updated_at').order('updated_at', { ascending: false }).limit(200);
         if (error) throw error;
         return data;
+      },
+      // ----- 🌍 모두의 맵 (3D 블록 세상에서 만든 파쿠르·미로) — maps.sql -----
+      async listMaps() {
+        const { data, error } = await sb.from('bm_map_list').select('*').order('created_at', { ascending: false }).limit(100);
+        if (error) throw new Error(/bm_map_list/.test(error.message) ? '관리자가 Supabase에서 maps.sql을 실행해야 해요.' : error.message);
+        return data;
+      },
+      async getMap(id) {
+        const { data, error } = await sb.from('bm_maps').select('id, title, kind, size, data').eq('id', id).single();
+        if (error) throw error;
+        return data;
+      },
+      async publishMap(m) {
+        const { data, error } = await sb.from('bm_maps').insert({ owner: uid, title: m.title, kind: m.kind, size: m.size.join(','), data: m.data }).select('id').single();
+        if (error) throw new Error(error.message);
+        return data.id;
+      },
+      async deleteMap(id) { must(await sb.from('bm_maps').delete().eq('id', id).eq('owner', uid)); },
+      async clearMap(id, ms) { // → { first, reward }
+        const { data, error } = await sb.rpc('bm_clear_map', { p_map: id, p_ms: Math.round(ms) });
+        if (error) throw error;
+        return data;
+      },
+      async mapRanking(id) {
+        const { data, error } = await sb.from('bm_map_ranking').select('nickname, ms').eq('map_id', id).order('ms').limit(5);
+        if (error) throw error;
+        return data;
+      },
+      async myMapEarnings() {
+        const { data } = await sb.from('bm_maps').select('earned').eq('owner', uid);
+        return (data || []).reduce((a, r) => a + r.earned, 0);
+      },
+      async collectMapEarnings() {
+        const { data, error } = await sb.rpc('bm_collect_map_earnings');
+        if (error) throw error;
+        return data || 0;
       },
       // ----- 끝말잇기 국어사전 확인: Supabase 함수 dict-check (찾은 결과는 bm_dict 표에 쌓인다) -----
       async dictCheck(word) {
@@ -180,6 +217,8 @@ var API = (() => {
   try { db = JSON.parse(localStorage.getItem(KEY)) || null; } catch { db = null; }
   db = db || { users: {}, sessions: [], current: null };
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch {} };
+  // 놀이터 창(iframe) 속 놀이가 같은 저장을 바꿀 수 있어서, 읽고 쓸 때마다 새로 읽는다
+  const reload = () => { try { db = JSON.parse(localStorage.getItem(KEY)) || db; } catch {} };
   async function hash(username, pw) {
     const text = `blockmadang:${username}:${pw}`;
     if (window.crypto?.subtle) {
@@ -193,7 +232,7 @@ var API = (() => {
   const pub = (u) => ({ id: u.id, username: u.username, nickname: u.nickname, points: u.points, character: u.character, chars: u.chars, data: JSON.parse(JSON.stringify(u.data)) });
   return {
     online,
-    async restore() { return cur() ? pub(cur()) : null; },
+    async restore() { reload(); return cur() ? pub(cur()) : null; },
     async signUp(username, password, nickname) {
       check(username, password, nickname);
       if (db.users[username]) throw new Error('이미 있는 아이디예요. 다른 아이디를 골라요.');
@@ -209,15 +248,19 @@ var API = (() => {
     },
     async signOut() { db.current = null; persist(); },
     async saveProfile(p) {
+      reload();
+      if (!cur() || p.id !== cur().id) throw new Error('다른 아이디로 바뀌었어요. 새로고침해 주세요.');
       Object.assign(cur(), { nickname: p.nickname, points: p.points, character: p.character, chars: p.chars, data: JSON.parse(JSON.stringify(p.data)) });
       persist();
     },
     async loadGame(game) {
+      reload();
       const saves = cur().saves;
       if (!saves[game]) { saves[game] = { trophies: 0, level: 1, data: {} }; persist(); }
       return saves[game];
     },
     async save(game, s) {
+      reload();
       Object.assign(cur(), { points: s.points, character: s.character, chars: s.chars });
       cur().saves[game] = { trophies: s.trophies, level: Math.min(30, Math.max(1, s.level)), data: s.data };
       persist();
@@ -229,7 +272,7 @@ var API = (() => {
       if (!game) return rows;
       return rows.filter((r) => r.game === game).sort((a, b) => b.trophies - a.trophies || b.level - a.level);
     },
-    async addSession(rec) { db.sessions.push({ ...rec, user_id: cur().id, created_at: new Date().toISOString() }); persist(); },
+    async addSession(rec) { reload(); db.sessions.push({ ...rec, user_id: cur().id, created_at: new Date().toISOString() }); persist(); },
     async mySessions() { return db.sessions.filter((s) => s.user_id === cur().id); },
     async typeLeaderboard() { return Object.values(db.users).map((u) => aggregate(u, db.sessions.filter((s) => s.user_id === u.id))); },
     async worlds() {
@@ -237,6 +280,48 @@ var API = (() => {
         .map((u) => ({ id: u.id, nickname: u.nickname, character: u.data.type.character || 'steve', worlds: u.data.type.worlds }));
     },
     async importOld() { throw new Error('예전 기록 가져오기는 온라인 모드에서만 돼요.'); },
+    // 🌍 모두의 맵 (이 브라우저 안에서만, 규칙은 maps.sql과 같게)
+    async listMaps() {
+      reload();
+      return (db.maps || []).map((m) => ({ id: m.id, owner: m.owner, nickname: (Object.values(db.users).find((u) => u.id === m.owner) || {}).nickname,
+        title: m.title, kind: m.kind, size: m.size, clears: m.clears, best_ms: m.best_ms, created_at: m.created_at })).reverse();
+    },
+    async getMap(id) { reload(); return db.maps.find((m) => m.id === id); },
+    async publishMap(m) {
+      reload();
+      db.maps = db.maps || [];
+      if (db.maps.filter((x) => x.owner === cur().id).length >= 10) throw new Error('맵은 10개까지 올릴 수 있어요. 예전 맵을 지우고 올려요.');
+      const id = (db.mapSeq = (db.mapSeq || 0) + 1);
+      db.maps.push({ id, owner: cur().id, title: m.title, kind: m.kind, size: m.size.join(','), data: m.data, clears: 0, best_ms: null, earned: 0, clearsBy: {}, created_at: new Date().toISOString() });
+      persist();
+      return id;
+    },
+    async deleteMap(id) { reload(); db.maps = db.maps.filter((m) => !(m.id === id && m.owner === cur().id)); persist(); },
+    async clearMap(id, ms) {
+      reload();
+      const m = db.maps.find((x) => x.id === id), me = cur().id;
+      const first = !(me in m.clearsBy);
+      m.clearsBy[me] = first ? ms : Math.min(m.clearsBy[me], ms);
+      const reward = first && me !== m.owner ? 50 : 0;
+      if (first) m.clears++;
+      if (reward) m.earned += 10;
+      m.best_ms = Math.min(m.best_ms || ms, ms);
+      persist();
+      return { first, reward };
+    },
+    async mapRanking(id) {
+      reload();
+      const m = db.maps.find((x) => x.id === id);
+      return Object.entries(m.clearsBy).map(([uid, ms]) => ({ nickname: (Object.values(db.users).find((u) => u.id === uid) || {}).nickname, ms })).sort((a, b) => a.ms - b.ms).slice(0, 5);
+    },
+    async myMapEarnings() { reload(); return (db.maps || []).filter((m) => m.owner === cur().id).reduce((a, m) => a + m.earned, 0); },
+    async collectMapEarnings() {
+      reload();
+      let v = 0;
+      (db.maps || []).filter((m) => m.owner === cur().id).forEach((m) => { v += m.earned; m.earned = 0; });
+      persist();
+      return v;
+    },
     // 국어사전 확인: 이 컴퓨터의 server.js가 대신 찾아본다
     async dictCheck(word) {
       try { return await (await fetch('/api/check?w=' + encodeURIComponent(word))).json(); }

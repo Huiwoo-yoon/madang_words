@@ -17,6 +17,11 @@ const Craft = (() => {
     { id: 'furnace', out: 1, cost: { cobble: 6 } },
   ];
 
+  // 💎 에메랄드 가게: 값은 끝말잇기 상점과 같다 (lvl 0 = 가구·장식)
+  const GEM_PRICE = { 1: 20, 2: 40, 3: 80, 4: 200, 0: 150 };
+  const GEM_PICK = [0, 500, 1500, 4000]; // 곡괭이 단계별 값
+  const gems = () => ME.points || 0;
+
   const lacks = cost => Object.entries(cost).filter(([id, n]) => (D.inv[id] || 0) < n);
   const costHTML = cost => Object.entries(cost).map(([id, n]) => {
     const have = D.inv[id] || 0;
@@ -36,6 +41,16 @@ const Craft = (() => {
       const cls = using ? 'sel' : own ? '' : D.crafting && !lacks(t.cost).length ? 'ready' : 'locked';
       return `<button class="recipe ${cls}" data-tool="${t.tier}"><img class="ico" src="${P.url}" alt=""><span class="nm">${P.name}</span>` +
         `<span class="cost">${t.cost ? costHTML(t.cost) : '처음부터 있어요'}</span><span>🎁 보너스 확률 ${chance}%</span><span>${state}</span></button>`;
+    }).join('');
+
+    const next = tier() + 1;
+    $('gemPick').innerHTML = next < PICKAXES.length
+      ? `<button class="buy" id="gemPickBtn" ${gems() < GEM_PICK[next] ? 'disabled' : ''}><img src="${PICKAXES[next].url}" alt=""> 💎 ${GEM_PICK[next].toLocaleString('ko-KR')}으로 ${PICKAXES[next].name} 바로 받기</button>`
+      : '<p class="note">⛏️ 가장 좋은 곡괭이를 쓰고 있어요!</p>';
+    $('gemShop').innerHTML = BLOCKS.map(B => {
+      const p = GEM_PRICE[B.lvl];
+      return `<div class="recipe gem"><img class="ico" src="${B.url}" alt=""><span class="nm">${B.name}</span><span>내 것 ${D.inv[B.id] || 0}개 · 💎 ${p}</span>` +
+        `<span class="gemBtns"><button data-gem="${B.id}" data-n="1" ${gems() < p ? 'disabled' : ''}>1개</button><button data-gem="${B.id}" data-n="10" ${gems() < p * 10 ? 'disabled' : ''}>10개</button></span></div>`;
     }).join('');
 
     $('craftItems').innerHTML = ITEMS.map(it => {
@@ -82,6 +97,26 @@ const Craft = (() => {
     done(`${BLOCK[id].name} ${it.out}개 완성!`, '🏗️ 만들기에서 놓을 수 있어요');
   }
 
+  function gemBuy(id, n) {
+    const cost = GEM_PRICE[BLOCK[id].lvl] * n;
+    if (gems() < cost) return hint(`에메랄드가 ${cost - gems()}개 모자라요.`);
+    ME.points -= cost;
+    D.inv[id] = (D.inv[id] || 0) + n;
+    drawInventory(id);
+    updateStats();
+    done(`💎 ${BLOCK[id].name} ${n}개를 샀어요!`, '블록 가방에 들어갔어요');
+  }
+  function gemPick() {
+    const t = tier() + 1, cost = GEM_PICK[t];
+    if (t >= PICKAXES.length || gems() < cost) return;
+    ME.points -= cost;
+    D.tools = { ...D.tools, pickaxe: t };
+    setMiner(ME.character);
+    updateStats();
+    done(`⛏️ ${PICKAXES[t].name}!`, `보너스 블록이 ${Math.round(100 * bonusChanceAt(t))}%로 더 자주 나와요`);
+  }
+  $('gemShop').onclick = e => { const b = e.target.closest('[data-gem]'); if (b && !b.disabled) gemBuy(b.dataset.gem, +b.dataset.n); };
+  $('gemPick').onclick = e => { if (e.target.closest('#gemPickBtn:not([disabled])')) gemPick(); };
   $('craftTools').onclick = e => { const b = e.target.closest('[data-tool]'); if (b) craftTool(+b.dataset.tool); };
   $('craftItems').onclick = e => { const b = e.target.closest('[data-item]'); if (b) craftItem(b.dataset.item); };
 

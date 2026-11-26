@@ -298,3 +298,11 @@ main[hidden] { display: none; }
 
 /* 블록 마당으로 돌아가기 */
 .homeLink { color: #fff; text-decoration: none; background: rgba(0,0,0,.35); padding: 6px 10px; border-radius: 8px; font-size: 14px; white-space: nowrap; }
+
+/* 💎 에메랄드 가게 */
+.recipe.gem .gemBtns { display: flex; gap: 6px; }
+.recipe.gem .gemBtns button { font: inherit; font-size: 14px; padding: 4px 10px; cursor: pointer; }
+.recipe.gem .gemBtns button:disabled { opacity: .45; cursor: default; }
+#gemPick { margin: 8px 0; }
+#gemPick img { width: 24px; height: 24px; image-rendering: pixelated; vertical-align: middle; }
+#buyTicketGem { margin-top: 6px; }

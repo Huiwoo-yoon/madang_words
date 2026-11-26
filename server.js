@@ -6,7 +6,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 4480;
+const PORT = +((process.argv.find((a) => a.startsWith('--port=')) || '').split('=')[1]) || 4480; // 예: --port=4481
 const LOCAL = process.argv.includes('--local');
 const ROOT = __dirname;
 const CACHE_FILE = path.join(ROOT, 'kkeutmal', 'dict-cache.json'); // { 단어: true/false } 한 번 찾은 결과

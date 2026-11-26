@@ -236,3 +236,14 @@ img.blk { image-rendering: pixelated; width: 1.4em; height: 1.4em; vertical-alig
 .w3-panel h2 { margin: 0; }
 
 .home-link { text-decoration: none; }
+
+/* 🌍 모두의 맵 */
+.bw-status { margin-top: 8px; font-size: 13px; line-height: 1.6; }
+.bw-shared { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.map-row { display: flex; align-items: center; gap: 8px; background: #0005; border: 2px solid var(--ink); padding: 6px 8px; }
+.map-row .mk { font-size: 12px; white-space: nowrap; }
+.map-row .mt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.map-row .mt b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-row .mt small { font-size: 11px; color: #dcdcdc; }
+.bw-input { width: 100%; font: inherit; font-size: 16px; padding: 8px; border: 3px solid var(--ink); }
+.w3-hotbar .slot.tool { background: #4a6aa0; }

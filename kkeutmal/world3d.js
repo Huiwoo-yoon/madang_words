@@ -1,7 +1,8 @@
 // ===== 3D 블록 세상 (Three.js) =====
 // 1인칭으로 걷고(WASD), 뛰고(스페이스), 마우스로 둘러보고, 블록을 놓고(오른쪽 클릭) 부순다(왼쪽 클릭).
 // 건축 모드: 놓기·부수기·날기(F) 가능 / 모험 모드: 걷기만 (부수기·놓기 안 됨)
-// 쓰는 법: World3D.open({ size:[W,H,D], data, mode, canSwitch, spawn, sky, inv, onSave, onGoal, onExit })
+// 쓰는 법: World3D.open({ size:[W,H,D], data, mode, canSwitch, tools, spawn, sky, inv, onSave, onGoal, onExit })
+//   tools: 내 세계처럼 맵 도구(출발·체크포인트·도착 블록)를 공짜로 놓을 수 있는지
 const World3D = (() => {
   const GRAVITY = 28, JUMP = 9, WALK = 4.3, RUN = 6, FLY = 9, REACH = 6;
   const HALF = 0.3, HEIGHT = 1.8, EYE = 1.6;
@@ -170,7 +171,7 @@ const World3D = (() => {
         const c = [Math.floor(P.x) + 0.5, Math.floor(P.y), Math.floor(P.z) + 0.5];
         if (!respawn || respawn[0] !== c[0] || respawn[1] !== c[1] || respawn[2] !== c[2]) { respawn = c; toast('🚩 체크포인트! 떨어지면 여기서 다시 시작해요.'); }
       }
-      if (under.id === 'goal' && o.onGoal && !finished) {
+      if (under.id === 'goal' && o.mode === 'adventure' && o.onGoal && !finished) { // 건축 모드(날기)로 닿은 건 치지 않는다
         finished = true;
         active = false;
         document.exitPointerLock();
@@ -205,13 +206,15 @@ const World3D = (() => {
     return null;
   }
 
-  const hotbarItems = () => Blocks.LIST.filter((b) => b.tier >= 0 && (o.inv[b.id] || 0) > 0).slice(0, 9);
+  // 핫바: 가진 블록 + (내 세계면) 맵 도구 3개. 최대 9칸
+  const TOOLS = Blocks.LIST.filter((b) => b.tool);
+  const hotbarItems = () => Blocks.LIST.filter((b) => b.tier >= 0 && (o.inv[b.id] || 0) > 0).slice(0, o.tools ? 9 - TOOLS.length : 9).concat(o.tools ? TOOLS : []);
   function drawHotbar() {
     if (o.mode !== 'build') { hud.bar.innerHTML = ''; return; }
     const items = hotbarItems();
     if (sel >= items.length) sel = Math.max(0, items.length - 1);
     hud.bar.innerHTML = items.length
-      ? items.map((b, i) => `<div class="slot${i === sel ? ' on' : ''}" title="${b.name}">${Blocks.icon(b)}<b>${o.inv[b.id]}</b><i>${i + 1}</i></div>`).join('')
+      ? items.map((b, i) => `<div class="slot${i === sel ? ' on' : ''}${b.tool ? ' tool' : ''}" title="${b.name}">${Blocks.icon(b)}<b>${b.tool ? '∞' : o.inv[b.id]}</b><i>${i + 1}</i></div>`).join('')
       : '<div class="empty">블록이 없어요. 끝말잇기로 모으거나 상점에서 사 오세요!</div>';
   }
 
@@ -220,9 +223,9 @@ const World3D = (() => {
     const h = ray();
     if (!h) return;
     const b = Blocks.BY_NUM[get(h.x, h.y, h.z)];
-    if (b.tier < 0) return toast(`${b.name} 블록은 부술 수 없어요.`);
+    if (b.tier < 0 && !(b.tool && o.tools)) return toast(`${b.name} 블록은 부술 수 없어요.`);
     vox[idx(h.x, h.y, h.z)] = 0;
-    o.inv[b.id] = (o.inv[b.id] || 0) + 1;
+    if (!b.tool) o.inv[b.id] = (o.inv[b.id] || 0) + 1; // 맵 도구는 공짜라 가방에 안 돌아간다
     changed();
   }
   function placeBlock() {
@@ -231,9 +234,11 @@ const World3D = (() => {
     const b = hotbarItems()[sel];
     if (!h || !b) return;
     if (!inside(h.px, h.py, h.pz)) return toast('세상 밖에는 놓을 수 없어요.');
+    if (b.id === 'start') vox.forEach((v, i) => { if (v === b.num) vox[i] = 0; }); // 출발 블록은 하나만
     vox[idx(h.px, h.py, h.pz)] = b.num;
     if (hits(P.x, P.y, P.z)) { vox[idx(h.px, h.py, h.pz)] = 0; return; } // 내 몸이 있는 곳엔 못 놓는다
-    o.inv[b.id]--;
+    if (!b.tool) o.inv[b.id]--;
+    else if (b.id === 'start') toast('🚩 출발 블록! 모험 모드는 여기서 시작해요.');
     changed();
   }
   function changed() {

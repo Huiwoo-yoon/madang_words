@@ -2,6 +2,7 @@
 // 이용권은 남은 시간(ms)으로 저장돼서 (D.ticketMs) 게임 창을 열어 둔 동안만 줄어든다. 하루 30분 제한과는 따로 센다.
 const Arcade = (() => {
   const PRICE = 64;                 // 블록 몇 개를 내는지
+  const GEM_PRICE = 500;            // 또는 💎 에메랄드 몇 개를 내는지
   const TICKET_MS = 10 * 60000;     // 한 번 사면 몇 분 놀 수 있는지
   const GAMES = [
     { id: 'yut', name: '🎲 윷마블', url: 'yutmarble/', desc: '윷을 던져 땅을 사는 보드게임. 한 화면에서 2~4명이 번갈아 해요.' },
@@ -19,6 +20,8 @@ const Arcade = (() => {
     $('arcadeTime').textContent = D.ticketMs > 0 ? `🎟️ 이용권 남은 시간 ${fmt(D.ticketMs)}` : '🎟️ 이용권이 없어요';
     $('buyTicket').disabled = !ok;
     $('buyTicket').textContent = `🎟️ 블록 ${PRICE}개 내고 ${TICKET_MS / 60000}분 이용권 받기`;
+    $('buyTicketGem').disabled = (ME.points || 0) < GEM_PRICE;
+    $('buyTicketGem').textContent = `💎 에메랄드 ${GEM_PRICE}개 내고 ${TICKET_MS / 60000}분 이용권 받기 (내 에메랄드 ${(ME.points || 0).toLocaleString('ko-KR')})`;
     $('arcadeNeed').textContent = ok ? `내 블록 ${n}개 → 사면 ${n - PRICE}개가 남아요. (흔한 블록부터 써요)` : `블록이 ${PRICE - n}개 모자라요. (내 블록 ${n}개) ⛏️ 캐기에서 더 캐 와요!`;
     $('arcadeGames').innerHTML = GAMES.map(g =>
       `<button class="game${D.ticketMs > 0 ? '' : ' locked'}" data-id="${g.id}"><span class="nm">${g.name}</span><span>${g.desc}</span></button>`).join('');
@@ -32,6 +35,16 @@ const Arcade = (() => {
       const take = Math.min(D.inv[b.id] || 0, left);
       if (take) { D.inv[b.id] -= take; left -= take; }
     });
+    give();
+  }
+  function buyGem() {
+    if ((ME.points || 0) < GEM_PRICE) return;
+    if (!confirm(`에메랄드 ${GEM_PRICE}개를 내고 ${TICKET_MS / 60000}분 이용권을 받을까요?`)) return;
+    ME.points -= GEM_PRICE;
+    updateStats();
+    give();
+  }
+  function give() {
     D.ticketMs = (D.ticketMs || 0) + TICKET_MS;
     saveNow();
     sfx.levelUp(); confetti();
@@ -76,6 +89,7 @@ const Arcade = (() => {
   }
 
   $('buyTicket').onclick = buy;
+  $('buyTicketGem').onclick = buyGem;
   $('arcadeGames').onclick = e => { const b = e.target.closest('.game'); if (b) play(b.dataset.id); };
   $('gameExit').onclick = close;
 
