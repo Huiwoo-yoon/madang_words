@@ -112,6 +112,18 @@ var API = (() => {
         if (error) throw error;
         return data;
       },
+      // ----- 끝말잇기 국어사전 확인: Supabase 함수 dict-check (찾은 결과는 bm_dict 표에 쌓인다) -----
+      async dictCheck(word) {
+        try {
+          const r = await fetch(`${CONFIG.supabaseUrl}/functions/v1/dict-check?w=${encodeURIComponent(word)}`, { headers: { apikey: CONFIG.supabaseAnonKey } });
+          if (!r.ok) throw new Error(r.status);
+          return await r.json();
+        } catch { return { ok: false, error: '국어사전에 연결하지 못했어요. 잠시 뒤에 다시 써 보세요.' }; }
+      },
+      async dictLearned() { // 국어사전에서 확인된 단어 (보스들도 배워서 쓴다)
+        const { data } = await sb.from('bm_dict').select('word').eq('ok', true).limit(10000);
+        return (data || []).map((r) => r.word);
+      },
       // ----- 예전 계정 가져오기: kind = 'type'(타자연습) | 'madang'(전통놀이 마당) -----
       // 예전 계정으로 잠깐 따로 로그인해서 읽기만 한다 (예전 기록은 바꾸지 않는다)
       async importOld(kind, username, password) {
@@ -225,6 +237,12 @@ var API = (() => {
         .map((u) => ({ id: u.id, nickname: u.nickname, character: u.data.type.character || 'steve', worlds: u.data.type.worlds }));
     },
     async importOld() { throw new Error('예전 기록 가져오기는 온라인 모드에서만 돼요.'); },
+    // 국어사전 확인: 이 컴퓨터의 server.js가 대신 찾아본다
+    async dictCheck(word) {
+      try { return await (await fetch('/api/check?w=' + encodeURIComponent(word))).json(); }
+      catch { return { ok: false, error: '사전 서버에 연결하지 못했어요 (node server.js 로 켰는지 확인).' }; }
+    },
+    async dictLearned() { try { return await (await fetch('/api/learned')).json(); } catch { return []; } },
     myId: () => cur()?.id,
   };
 })();

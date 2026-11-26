@@ -25,12 +25,17 @@
 | `ttakji/`, `tuho/`, `sudoku/`, `wordcross/`, `scary/`, `mini.*`, `pixel.js` | 전통놀이 마당에서 그대로 복사 (`../api.js`만 새것) |
 | `type/` | 타자연습 복사. `type/api.js`가 통합 계정으로 연결해 주는 어댑터 |
 | `kkeutmal/` | 끝말잇기 + 3D 블록 세상 복사. `game.js`의 저장만 통합 계정으로 바꿈 |
-| `server.js` | 이 컴퓨터에서 해 볼 때 쓰는 서버 (끝말잇기 국어사전 확인 포함) |
+| `server.js` | 이 컴퓨터에서 해 볼 때 쓰는 서버 (`--local` 테스트 모드에서는 국어사전 확인도 여기서) |
+| `supabase/functions/dict-check/index.ts`, `dict.sql` | 온라인 국어사전 확인 함수와 찾은 단어 표 |
 
 ## 처음 한 번: 온라인 준비
 
 1. Supabase(타자연습·마당과 같은 프로젝트) → SQL Editor에 `schema.sql`을 통째로 붙여 넣고 Run.
-2. 끝. (Confirm email은 이미 꺼져 있어야 합니다. 타자연습·마당과 같은 설정)
+2. 끝말잇기 국어사전 확인:
+   - SQL Editor에 `dict.sql`을 붙여 넣고 Run (찾은 단어를 쌓아 두는 `bm_dict` 표).
+   - Edge Functions → Deploy a new function → Via Editor → 이름 `dict-check` → `supabase/functions/dict-check/index.ts` 내용을 통째로 붙여 넣고 Deploy.
+   - 그 함수의 Details(설정)에서 **Verify JWT with legacy secret**(JWT 확인)을 끄고 Save. (게임의 공개 키로 부를 수 있게)
+3. (Confirm email은 이미 꺼져 있어야 합니다. 타자연습·마당과 같은 설정)
 
 ## 이 컴퓨터에서 해 보기
 
@@ -54,5 +59,4 @@ node game/blockmadang/server.js --local
 
 ## 아직 안 된 것
 
-- 인터넷에 올렸을 때 끝말잇기의 국어사전 확인 (지금은 `server.js`가 있어야 함) → 다음 단계에서 Supabase 함수로.
 - 에메랄드 1개 = 예전 마당 포인트 1개로 그대로 합쳤습니다. 끝말잇기에서 버는 양이 커서 딱지치기 상점 물건이 상대적으로 싸집니다.

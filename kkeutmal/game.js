@@ -318,9 +318,7 @@ async function submitWord() {
   if (!DICT.has(w)) {
     checking = true;
     $('msg').textContent = '📖 국어사전에서 찾는 중…';
-    let res;
-    try { res = await (await fetch('/api/check?w=' + encodeURIComponent(w))).json(); }
-    catch { res = { ok: false, error: '사전 서버에 연결하지 못했어요 (node server.js 로 켰는지 확인).' }; }
+    const res = await API.dictCheck(w); // 온라인: Supabase 함수, 이 컴퓨터 전용: server.js
     checking = false;
     if (M.over) return;
     if (res.error) { $('msg').textContent = res.error; return; } // 연결 문제는 내 잘못이 아니니 지지 않는다
@@ -512,7 +510,7 @@ $('modal').onclick = (e) => {
   else renderHome();
 };
 
-fetch('/api/learned').then((r) => r.json()).then((ws) => ws.forEach((w) => { LEARNED.add(w); addWord(w); })).catch(() => {});
+API.dictLearned().then((ws) => ws.forEach((w) => { LEARNED.add(w); addWord(w); })).catch(() => {});
 // 시작 (모든 스크립트를 읽은 뒤): 블록 마당에 로그인되어 있지 않으면 첫 화면(로그인)으로 보낸다
 window.addEventListener('DOMContentLoaded', async () => {
   const p = await API.restore().catch(() => null);
