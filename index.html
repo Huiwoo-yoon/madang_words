@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>블록 마당</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css">
+<link rel="stylesheet" href="hub.css?v=20261002d">
+</head>
+<body>
+
+<!-- 로그인 / 가입 -->
+<div id="login" class="overlay hidden">
+  <div class="card login-card">
+    <div class="logo">⛏</div>
+    <h1>블록 마당</h1>
+    <p class="hint">전통놀이·타자연습·끝말잇기·3D 블록 세상을 아이디 하나로!</p>
+    <div class="auth-tabs">
+      <button id="authLoginTab" class="sel">로그인</button>
+      <button id="authSignupTab">처음이에요 (가입)</button>
+    </div>
+    <input id="idInput" maxlength="16" placeholder="아이디 (영어 소문자·숫자 3~16자)" autocomplete="username" autocapitalize="off">
+    <input id="pwInput" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="current-password">
+    <input id="nickInput" class="hidden" maxlength="10" placeholder="닉네임 (순위표에 보여요, 1~10자)">
+    <p id="authErr" class="auth-err"></p>
+    <button id="authBtn" class="btn primary">로그인</button>
+    <p id="authMode" class="hint"></p>
+  </div>
+</div>
+
+<!-- 예전 기록 가져오기 -->
+<div id="importBox" class="overlay hidden">
+  <div class="card login-card">
+    <h2>📦 예전 기록 가져오기</h2>
+    <p class="hint">예전에 하던 게임의 아이디와 비밀번호를 넣으면, 모은 것을 이 계정으로 가져와요. 계정마다 한 번만 돼요. 예전 게임의 기록은 그대로 남아요.</p>
+    <div class="auth-tabs">
+      <button id="impType" class="sel">⛏ 블록 캐기 타자연습</button>
+      <button id="impMadang">🪁 전통놀이 마당</button>
+    </div>
+    <p id="impWhat" class="hint"></p>
+    <input id="impId" maxlength="16" placeholder="예전 아이디" autocomplete="off" autocapitalize="off">
+    <input id="impPw" type="password" placeholder="예전 비밀번호" autocomplete="off">
+    <p id="impErr" class="auth-err"></p>
+    <button id="impGo" class="btn primary">가져오기</button>
+    <button id="impClose" class="btn">닫기</button>
+  </div>
+</div>
+<header>
+  <div class="who">⛏ 블록 마당</div>
+  <div class="stat"><span id="hChar"></span> <b id="hName"></b></div>
+  <div class="stat">💎 <b id="hPoints">0</b> 에메랄드</div>
+  <div class="stat">🧱 <b id="hBlocks">0</b> 블록</div>
+  <button id="importBtn" class="btn tiny">📦 예전 기록 가져오기</button>
+  <button id="logoutBtn" class="btn tiny">로그아웃</button>
+</header>
+
+<main>
+  <div class="banner" id="banner"></div>
+  <h2>⛏ 블록 놀이</h2>
+  <p class="hint">타자연습과 끝말잇기로 모은 블록은 같은 가방에 들어가요. 블록 세상에서 3D로 지어요!</p>
+  <div class="games" id="blockGames"></div>
+  <h2>🎮 놀이 고르기</h2>
+  <p class="hint">에메랄드(포인트)와 캐릭터는 모든 놀이에서 같이 써요. 아이템·레벨·트로피는 놀이마다 따로예요.</p>
+  <div class="games" id="games"></div>
+
+  <h2>🎁 오늘의 미니게임</h2>
+  <p class="hint">미니게임마다 하루에 한 번만 할 수 있어요. 대신 포인트를 아주 많이 받아요!</p>
+  <div class="games" id="minis"></div>
+
+  <h2>🥇 종합 순위</h2>
+  <table class="rank">
+    <thead id="rankHead"></thead>
+    <tbody id="rankBody"></tbody>
+  </table>
+  <p class="hint">모든 놀이의 트로피를 더한 순위예요. (트로피 합계 → 레벨 합계 순)</p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20261002d"></script>
+<script src="api.js?v=20261002d"></script>
+<script src="pixel.js?v=20261002d"></script>
+<script src="mini.js?v=20261002d"></script>
+<script src="hub.js?v=20261002d"></script>
+</body>
+</html>
