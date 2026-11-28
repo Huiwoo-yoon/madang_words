@@ -28,6 +28,7 @@
 | `server.js` | 이 컴퓨터에서 해 볼 때 쓰는 서버 (`--local` 테스트 모드에서는 국어사전 확인도 여기서) |
 | `supabase/functions/dict-check/index.ts`, `dict.sql` | 온라인 국어사전 확인 함수와 찾은 단어 표 |
 | `maps.sql` | 🌍 모두의 맵: 올린 맵, 깬 기록, 보상 함수 |
+| `parkour.sql` | 🏃 파쿠르 20단계 레벨별 순위 (실패 횟수·시간) |
 
 ## 처음 한 번: 온라인 준비
 
@@ -37,7 +38,8 @@
    - Edge Functions → Deploy a new function → Via Editor → 이름 `dict-check` → `supabase/functions/dict-check/index.ts` 내용을 통째로 붙여 넣고 Deploy.
    - 그 함수의 Details(설정)에서 **Verify JWT with legacy secret**(JWT 확인)을 끄고 Save. (게임의 공개 키로 부를 수 있게)
 3. 🌍 모두의 맵: SQL Editor에 `maps.sql`을 붙여 넣고 Run.
-4. (Confirm email은 이미 꺼져 있어야 합니다. 타자연습·마당과 같은 설정)
+4. 🏃 파쿠르 순위: SQL Editor에 `parkour.sql`을 붙여 넣고 Run.
+5. (Confirm email은 이미 꺼져 있어야 합니다. 타자연습·마당과 같은 설정)
 
 ## 이 컴퓨터에서 해 보기
 

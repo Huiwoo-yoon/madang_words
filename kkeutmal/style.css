@@ -247,3 +247,25 @@ img.blk { image-rendering: pixelated; width: 1.4em; height: 1.4em; vertical-alig
 .map-row .mt small { font-size: 11px; color: #dcdcdc; }
 .bw-input { width: 100%; font: inherit; font-size: 16px; padding: 8px; border: 3px solid var(--ink); }
 .w3-hotbar .slot.tool { background: #4a6aa0; }
+
+/* 체력·배고픔 (모험 모드) */
+.w3-stats { position: absolute; bottom: 34px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; pointer-events: none; }
+.w3-row { display: flex; gap: 1px; }
+.w3-row i { position: relative; width: 18px; height: 18px; background-size: 18px 18px; image-rendering: pixelated; overflow: hidden; }
+.w3-row i b { position: absolute; left: 0; top: 0; bottom: 0; background-size: 18px 18px; image-rendering: pixelated; }
+.w3-row.low i { animation: w3shake 0.5s infinite; }
+.w3-row.low i:nth-child(2n) { animation-delay: 0.25s; }
+@keyframes w3shake { 50% { transform: translateY(-2px); } }
+.w3-bag { font-size: 13px; background: #0009; border: 2px solid var(--ink); padding: 2px 6px; white-space: nowrap; }
+.w3-hurt { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.4s; background: radial-gradient(ellipse at center, transparent 40%, #e00a 100%); }
+.w3-hurt.on { opacity: 1; transition: none; }
+.w3-fire { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, #ff5a00bb, #ffb00044 30%, transparent 55%); animation: w3fire 0.3s infinite alternate; }
+@keyframes w3fire { to { opacity: 0.7; } }
+.lvbtn .ft { font-size: 15px; letter-spacing: 1px; min-height: 16px; }
+.bw-food { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bw-rank-lv { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; margin-bottom: 8px; }
+.bw-rank-lv button { font: inherit; font-size: 12px; padding: 4px 0; border: 2px solid var(--ink); background: var(--stone); color: #fff; cursor: pointer; }
+.bw-rank-lv button.on { background: #3a8a2a; }
+.bw-rank { width: 100%; border-collapse: collapse; font-size: 14px; }
+.bw-rank td, .bw-rank th { padding: 4px 6px; border-bottom: 1px solid #0003; text-align: left; }
+.bw-rank tr.me { background: #ffd23f55; }

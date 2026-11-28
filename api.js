@@ -149,6 +149,18 @@ var API = (() => {
         if (error) throw error;
         return data || 0;
       },
+      // ----- 🏃 파쿠르 20단계 순위 (parkour.sql): 레벨마다 내 최고 기록 하나 (실패 적은 순 → 빠른 순) -----
+      async parkourRecord(level, fails, ms) {
+        const { data, error } = await sb.rpc('bm_parkour_record', { p_level: level, p_fails: fails, p_ms: Math.round(ms) });
+        if (error) throw new Error(/bm_parkour/.test(error.message) ? '관리자가 Supabase에서 parkour.sql을 실행해야 해요.' : error.message);
+        return data; // true = 내 최고 기록
+      },
+      async parkourRanking(level) {
+        const { data, error } = await sb.from('bm_parkour_ranking').select('user_id, nickname, fails, ms').eq('level', level)
+          .order('fails').order('ms').limit(10);
+        if (error) throw new Error(/bm_parkour/.test(error.message) ? '관리자가 Supabase에서 parkour.sql을 실행해야 해요.' : error.message);
+        return data;
+      },
       // ----- 끝말잇기 국어사전 확인: Supabase 함수 dict-check (찾은 결과는 bm_dict 표에 쌓인다) -----
       async dictCheck(word) {
         try {
@@ -321,6 +333,22 @@ var API = (() => {
       (db.maps || []).filter((m) => m.owner === cur().id).forEach((m) => { v += m.earned; m.earned = 0; });
       persist();
       return v;
+    },
+    // 🏃 파쿠르 순위 (이 브라우저 안에서만)
+    async parkourRecord(level, fails, ms) {
+      reload();
+      db.parkour = db.parkour || {};
+      const lv = (db.parkour[level] = db.parkour[level] || {}), old = lv[cur().id];
+      const best = !old || fails < old.fails || (fails === old.fails && ms < old.ms);
+      if (best) lv[cur().id] = { fails, ms: Math.round(ms) };
+      persist();
+      return best;
+    },
+    async parkourRanking(level) {
+      reload();
+      const nick = (id) => (Object.values(db.users).find((u) => u.id === id) || {}).nickname;
+      return Object.entries((db.parkour || {})[level] || {}).map(([id, r]) => ({ user_id: id, nickname: nick(id), ...r }))
+        .sort((a, b) => a.fails - b.fails || a.ms - b.ms).slice(0, 10);
     },
     // 국어사전 확인: 이 컴퓨터의 server.js가 대신 찾아본다
     async dictCheck(word) {

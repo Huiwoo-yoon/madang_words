@@ -23,35 +23,124 @@ const Maps = (() => {
   }
   const pack = (data) => { let s = ''; for (let i = 0; i < data.length; i += 8192) s += String.fromCharCode.apply(null, data.subarray(i, i + 8192)); return btoa(s); };
 
-  // 🏃 파쿠르: 허공에 떠 있는 발판을 뛰어서 건너 도착 블록까지. 레벨이 오를수록 길고, 멀고, 발판이 작다
-  const PARKOUR_LEVELS = 5;
+  // 🏃 파쿠르 20단계: 허공에 떠 있는 발판을 뛰어서 건너 도착 블록까지.
+  // 같은 레벨은 언제나 같은 맵이다 (씨앗 숫자로 만든다) → 레벨마다 실패 횟수·시간으로 순위를 겨룬다.
+  // 점프 거리는 20단계가 예전 5단계(가장 어려웠던 것)쯤이고, 대신 장애물·몹이 늘어난다.
+  const PARKOUR_LEVELS = 20;
+  const THEMES = [
+    { name: '초원', icon: '🌳', sky: '#9fd4ff', mats: ['grass', 'leaves', 'planks', 'log'], bush: 'leaves' },
+    { name: '사막', icon: '🏜️', sky: '#ffd9a0', mats: ['sand', 'planks', 'brick', 'gold'], bush: 'cactus' },
+    { name: '용암 동굴', icon: '🔥', sky: '#3a120c', mats: ['cobble', 'stone', 'brick', 'coal', 'iron'], bush: 'cobble', sea: true },
+    { name: '하늘 성', icon: '🌌', sky: '#2a2060', mats: ['lapis', 'iron', 'gold', 'diamond', 'emerald'], bush: 'glass' },
+  ];
+  // 레벨마다 나오는 것: h 장애물(넘어가기) · c 선인장 · l 용암 · g 고스트 블록 · d 발사기 · s 슬라임 · z 좀비 · k 해골
+  const FEATS = ['', '', 'h', 's', 'hs', 'c', 'cg', 'gz', 'cd', 'gdz', 'l', 'ld', 'lk', 'lgz', 'ldkz', 'gk', 'gds', 'lgzk', 'hcgldszk', 'hcgldszk'];
+  const FEAT_INFO = { h: ['🧱', '장애물'], c: ['🌵', '선인장'], l: ['🔥', '용암'], g: ['👻', '고스트 블록'], d: ['🏹', '발사기'], s: ['🟢', '슬라임'], z: ['🧟', '좀비'], k: ['🦴', '해골'] };
+  const themeOf = (lv) => THEMES[Math.min(3, Math.floor((lv - 1) / 5))];
+  const parkourInfo = (lv) => ({ theme: themeOf(lv), feats: [...FEATS[lv - 1]].map((f) => FEAT_INFO[f]) });
+  function seeded(seed) {
+    return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  }
   function parkour(lv) {
-    const jumps = 8 + lv * 4;
-    const mats = ['stone', 'planks', 'leaves', 'brick', 'cobble', 'sand', 'lapis', 'iron'];
-    const pads = [{ x: 0, y: 10, z: 0, w: 3, id: 'grass' }]; // w = 발판 한 변 크기
-    let x = 0, y = 10, z = 0;
+    const R = seeded(lv * 7919 + 17), chance = (p) => R() < p, pick = (a) => a[Math.floor(R() * a.length)];
+    const th = themeOf(lv), t = (lv - 1) / (PARKOUR_LEVELS - 1), feats = FEATS[lv - 1];
+    const cells = [], mobs = [], items = [];
+    const put = (x, y, z, id) => cells.push([x, y, z, id]);
+    const rect = (x0, z0, w, d, y, id) => { for (let a = 0; a < w; a++) for (let b = 0; b < d; b++) put(x0 + a, y, z0 + b, id); };
+    const food = (type, x, y, z) => items.push({ type, x, y, z });
+    const jumps = 10 + Math.round(t * 16);           // 1단계 10번 → 20단계 26번
+    const every = lv <= 10 ? 4 : 5;                    // 체크포인트 간격
+    let y = 10, xc = 0, zEnd = 2, ghostK = 1, lastSpecial = -9, checks = 0, deck = [];
+    rect(-1, 0, 3, 3, y, 'grass');                     // 출발 발판
     for (let i = 1; i <= jumps; i++) {
-      const up = Math.random() < (lv === 1 ? 0.15 : 0.3);
-      const down = !up && Math.random() < 0.25;
-      // 칸 사이 거리: 2(한 칸 띄움) ~ 4(세 칸 띄움, 달려야 닿음). 올라갈 때는 가깝게
-      let dz = 2 + Math.floor(Math.random() * (lv >= 3 ? 2 : 1)) + (Math.random() < 0.4 ? 1 : 0);
-      if (lv >= 4 && !up && Math.random() < 0.3) dz = 4;
-      if (up) dz = Math.min(dz, 3);
-      const dx = up ? 0 : Math.floor(Math.random() * 3) - 1;
-      const w = lv === 1 ? 2 : lv <= 3 && Math.random() < 0.5 ? 2 : 1;
-      x += dx; z += dz + (pads[pads.length - 1].w - 1); y = Math.max(4, Math.min(22, y + (up ? 1 : down ? -1 : 0)));
-      const isCheck = i % 6 === 0 && i < jumps;
-      pads.push({ x, y, z, w: isCheck ? 2 : w, id: isCheck ? 'check' : mats[(i + lv) % mats.length] });
+      // 앞 발판과의 빈칸: 1~3칸 (3칸은 달려서 뛰어야 한다). 올라갈 때는 2칸까지
+      let gap = chance(0.3 + 0.35 * t) ? 2 : 1;
+      if (gap === 2 && lv >= 8 && chance(0.25 * t)) gap = 3;
+      const up = chance(0.12 + 0.18 * t), down = !up && chance(0.2);
+      if (up) gap = Math.min(gap, 2);
+      y = Math.max(7, Math.min(20, y + (up ? 1 : down ? -1 : 0)));
+      if (gap < 3) xc += pick([-1, 0, 0, 1]);
+      const zs = zEnd + 1 + gap;
+      const mat = th.mats[(i + lv) % th.mats.length];
+      const padW = lv <= 2 ? pick([2, 3]) : chance(0.75 - 0.5 * t) ? 2 : 1;
+      const pad = (w = padW, id = mat) => { const x0 = xc - Math.floor((w - 1) / 2); rect(x0, zs, w, w, y, id); zEnd = zs + w - 1; return { x0, w }; };
+
+      if (i % every === 0) { // 🚩 체크포인트 (음식이 놓여 있을 때가 있다)
+        const p = pad(2, 'check');
+        checks++;
+        const type = lv >= 15 && checks % 2 === 0 ? 'steak' : lv >= 8 && checks % 2 === 0 ? 'bread' : checks % 2 ? 'apple' : null;
+        if (type) food(type, p.x0 + 1, y + 1, zs + 1);
+        continue;
+      }
+      // 특별한 발판: 그 레벨의 장애물·몹을 돌아가며 골고루 (한 가지만 몰리지 않게)
+      let kind = 'pad';
+      if (feats && i - lastSpecial >= (lv < 10 ? 2 : 1) && chance(0.35 + 0.3 * t)) {
+        if (!deck.length) deck = [...feats].sort(() => R() - 0.5);
+        kind = deck.pop();
+      }
+      if (kind !== 'pad') lastSpecial = i;
+      if (kind === 'h') { // 🧱 장애물: 긴 발판 가운데 한 칸 높이 벽을 넘어간다 (사막은 선인장)
+        const sw = lv < 10 ? 2 : 1, x0 = xc - (sw - 1);
+        rect(x0, zs, sw, 4, y, mat);
+        for (let a = 0; a < sw; a++) put(x0 + a, y + 1, zs + 2, th.bush);
+        zEnd = zs + 3;
+      } else if (kind === 'c') { // 🌵 선인장 발판: 가시를 피해서 내려앉는다
+        const x0 = xc - 1;
+        rect(x0, zs, 3, 3, y, 'sand');
+        const spots = [0, 1, 2, 3, 4, 5, 6, 7, 8].sort(() => R() - 0.5).slice(0, lv >= 15 ? 4 : 3);
+        spots.forEach((k) => { put(x0 + (k % 3), y + 1, zs + Math.floor(k / 3), 'cactus'); if (lv >= 12 && k === spots[0]) put(x0 + (k % 3), y + 2, zs + Math.floor(k / 3), 'cactus'); });
+        zEnd = zs + 2;
+      } else if (kind === 'l') { // 🔥 용암 웅덩이를 뛰어넘는다
+        const sw = lv < 15 ? 2 : 1, x0 = xc - (sw - 1);
+        for (let b = 0; b < 6; b++) for (let a = 0; a < sw; a++) {
+          if (b === 2 || b === 3) { put(x0 + a, y, zs + b, 'lava'); put(x0 + a, y - 1, zs + b, mat); } else put(x0 + a, y, zs + b, mat);
+        }
+        zEnd = zs + 5;
+      } else if (kind === 'g') { // 👻 고스트 블록: 1번·2번이 번갈아 나타난다 → 박자 맞춰 뛰기
+        const n = 2 + (t > 0.5 ? 1 : 0);
+        let z0 = zs;
+        for (let k = 0; k < n; k++) {
+          const w = lv < 12 ? 2 : pick([1, 2]), x0 = xc - Math.floor((w - 1) / 2);
+          rect(x0, z0, w, w, y, ghostK === 1 ? 'ghost1' : 'ghost2');
+          ghostK = 3 - ghostK;
+          zEnd = z0 + w - 1;
+          z0 = zEnd + 2;
+        }
+      } else if (kind === 'd') { // 🏹 발사기: 옆 기둥에서 화살이 날아온다
+        pad();
+        const sides = t > 0.8 ? [-1, 1] : [pick([-1, 1])];
+        sides.forEach((side, k) => {
+          const tx = xc + side * 4, tz = zs + k;
+          for (let yy = y - 3; yy <= y; yy++) put(tx, yy, tz, 'cobble');
+          put(tx, y + 1, tz, 'dispenser');
+        });
+      } else if (kind === 's' || kind === 'z') { // 🟢🧟 몹이 있는 넓은 발판: 밀려 떨어지지 않게 지나가거나 물리친다
+        const A = lv >= 15 ? 5 : 4, x0 = xc - Math.floor(A / 2);
+        rect(x0, zs, A, A, y, mat);
+        const n = kind === 'z' ? (lv >= 18 ? 2 : 1) : lv >= 17 ? 3 : 2;
+        for (let k = 0; k < n; k++) mobs.push({ type: kind === 'z' ? 'zombie' : 'slime', x: x0 + 1 + ((k * 2) % (A - 1)) + 0.5, y: y + 1, z: zs + A - 2 + 0.5 - (k % 2) });
+        zEnd = zs + A - 1;
+      } else if (kind === 'k') { // 🦴 해골: 옆 탑 위에서 활을 쏜다
+        pad();
+        const side = pick([-1, 1]), sx = xc + side * 5;
+        for (let yy = y - 4; yy <= y + 1; yy++) put(sx, yy, zs, 'cobble');
+        rect(sx - 1, zs, 2, 2, y + 2, mat);
+        mobs.push({ type: 'skeleton', x: sx, y: y + 3, z: zs + 1 });
+      } else {
+        const p = pad();
+        if (i % 6 === 3) food('apple', p.x0 + p.w / 2, y + 1, zs + p.w / 2);
+      }
     }
-    z += 3;
-    pads.push({ x: x - 1, y, z, w: 3, id: 'goal' });
-    // 크기 맞추기
-    const minX = Math.min(...pads.map((p) => p.x)) - 4, maxX = Math.max(...pads.map((p) => p.x + p.w)) + 4;
-    const W = maxX - minX, H = 30, D = z + 8;
+    const gz = zEnd + 3;
+    rect(xc - 1, gz, 3, 3, y, 'goal');
+    // 크기 맞추기 (옆으로 3칸, 앞뒤로 2칸씩 여유)
+    const xs = cells.map((c) => c[0]), minX = Math.min(...xs) - 3, W = Math.max(...xs) - minX + 4, H = 30, D = gz + 3 + 4;
     const m = blank(W, H, D);
-    pads.forEach((p) => { for (let a = 0; a < p.w; a++) for (let b = 0; b < p.w; b++) m.set(p.x - minX + a, p.y, p.z + 2 + b, p.id); });
-    const s = pads[0];
-    return { size: [W, H, D], data: m.data, spawn: [s.x - minX + 1.5, s.y + 1, s.z + 2 + 1.5], yaw: Math.PI, sky: '#9fd4ff', timer: true };
+    if (th.sea) for (let x = 0; x < W; x++) for (let z = 0; z < D; z++) { m.set(x, 0, z, 'bedrock'); m.set(x, 1, z, 'lava'); } // 아래는 온통 용암 바다
+    cells.forEach(([x, cy, z, id]) => m.set(x - minX, cy, z + 2, id));
+    const mv = (e) => ({ ...e, x: e.x - minX, z: e.z + 2 });
+    return { size: [W, H, D], data: m.data, spawn: [0.5 - minX, 11, 3.5], yaw: Math.PI, sky: th.sky, timer: true,
+      mobs: mobs.map(mv), items: items.map(mv), fireEvery: 3.2 - 1.2 * t };
   }
 
   // 🌀 미로: 높은 울타리 벽 사이를 지나 도착 블록 찾기. 레벨이 오를수록 넓어진다
@@ -98,5 +187,5 @@ const Maps = (() => {
   function fingerprint(data) { let h = 2166136261; for (let i = 0; i < data.length; i++) { h ^= data[i]; h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
   const has = (data, id) => data.indexOf(N(id)) >= 0;
 
-  return { myWorld, pack, unpack, parkour, maze, startOf, fingerprint, has, MY, PARKOUR_LEVELS, MAZE_LEVELS };
+  return { myWorld, pack, unpack, parkour, parkourInfo, maze, startOf, fingerprint, has, MY, PARKOUR_LEVELS, MAZE_LEVELS };
 })();

@@ -1,7 +1,8 @@
 // ===== 블록 마당 효과음 (Web Audio로 직접 합성 — 소리 파일 없음) =====
 // Sfx.play('이름', …) 로 낸다. 켜고 끄기는 모든 놀이가 같이 쓴다 (localStorage 'bm.sound').
 // 소리 종류
-//   3D 블록 세상: step(재질), jump, land, breakBlock(재질), place(재질), deny, checkpoint, goal, fall, fly
+//   3D 블록 세상: step(재질), jump, land, breakBlock(재질), place(재질), deny, checkpoint, goal, fall, fly,
+//     hurt, death, eat, bow, thunk, sizzle, punch
 //   공용: click, pop, coin, wrong, tick, win, lose, gulp, clang, ttak, whiff
 //   목소리(캐릭터·몬스터): yay, hum, hiss, zombie, skeleton, ender, oink, villager, slime, squeak, howl, bark,
 //     spider, robot, ghost, sparkle, witch, roar, golem, whoosh, growl, fanfare, boing, sing, yoshi, clink, splash, thunder
@@ -81,6 +82,13 @@ const Sfx = (() => {
     goal: () => notes([523, 659, 784, 1047, 1319], 0.08, { type: 'square', vol: 0.07, dur: 0.2 }),
     fall: () => tone(600, 0.5, { type: 'sine', vol: 0.08, to: 120 }),
     fly: () => noise(0.3, { filter: 'bandpass', freq: 500, to: 2000, q: 2, vol: 0.1 }),
+    hurt: () => { tone(260, 0.14, { type: 'sawtooth', vol: 0.09, to: 150 }); noise(0.08, { filter: 'lowpass', freq: 900, vol: 0.2 }); }, // 윽
+    death: () => { tone(330, 0.5, { type: 'sawtooth', vol: 0.08, to: 80 }); noise(0.4, { filter: 'lowpass', freq: 600, to: 150, vol: 0.2, at: 0.1 }); },
+    eat: () => { for (let i = 0; i < 3; i++) noise(0.06, { filter: 'bandpass', freq: 1800 * rnd(0.8, 1.2), q: 1.5, vol: 0.2, at: i * 0.11 }); tone(300, 0.1, { type: 'sine', vol: 0.1, to: 150, at: 0.36 }); }, // 냠냠 꿀꺽
+    bow: () => { tone(420, 0.12, { type: 'triangle', vol: 0.08, to: 200 }); noise(0.15, { filter: 'bandpass', freq: 2500, to: 800, q: 2, vol: 0.08 }); }, // 핑 (화살 쏘기)
+    thunk: () => noise(0.05, { filter: 'bandpass', freq: 700, q: 3, vol: 0.15 }),           // 화살이 블록에 꽂힘
+    sizzle: () => noise(0.4, { filter: 'highpass', freq: 2000, vol: 0.1, attack: 0.05 }),   // 지글지글 (불)
+    punch: () => { noise(0.06, { filter: 'lowpass', freq: 1200, vol: 0.3 }); tone(140, 0.07, { type: 'square', vol: 0.08, to: 80 }); }, // 퍽 (몹 때리기)
     // ----- 공용 -----
     click: () => tone(1200, 0.03, { type: 'square', vol: 0.04 }),
     pop: () => tone(500, 0.08, { type: 'sine', vol: 0.15, to: 900 }),
